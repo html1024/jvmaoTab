@@ -9,6 +9,7 @@ import { IconCloudUpload, IconCloudDownload } from "@tabler/icons-react";
 import { saveFavicon } from "~/db";
 import { db } from "~/db";
 import _ from "lodash";
+import { normalizePendingLinkUrl } from "~/stores/pendingLinks.mjs";
 
 const { useToken } = theme;
 
@@ -64,7 +65,7 @@ const Tower = ({ children }) => {
   const documentVisibility = useDocumentVisibility();
 
   const getTheme = useCallback(() => {
-    let isDark = option.getSystemTheme() === 'dark';;
+    let isDark = option.getSystemTheme() === 'dark';
 
     const t = {
       cssVar: true,
@@ -270,8 +271,21 @@ const Tower = ({ children }) => {
         runtime.storage.local.get(['pendingLinks'], (result) => {
           const pending = result.pendingLinks || [];
           if (pending.length > 0) {
+            const seenUrls = new Set();
+            const uniquePending = [];
+            pending.forEach((item) => {
+              const normalizedUrl = normalizePendingLinkUrl(item?.url);
+              if (!normalizedUrl || seenUrls.has(normalizedUrl)) {
+                return;
+              }
+              seenUrls.add(normalizedUrl);
+              uniquePending.push({
+                ...item,
+                url: normalizedUrl,
+              });
+            });
             // 批量添加待添加网址
-            Promise.all(pending.map((item) => {
+            Promise.all(uniquePending.map((item) => {
               if (item.url) {
                 return link.addPendingLink(item.url, item.title).catch((err) => {
                   console.error("[link] Failed to add pending link from storage", err);

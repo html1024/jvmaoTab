@@ -127,6 +127,14 @@ const TabList = (props) => {
     cacheTime: 0,
   }).current;
 
+  const setPendingLinksCache = useMemoizedFn((links, cacheTime) => {
+    state.pendingLinksCache = links || [];
+    if (Number.isFinite(cacheTime)) {
+      state.cacheTime = cacheTime;
+    }
+    setPendingLinks(state.pendingLinksCache);
+  });
+
   const handleAddAll = useMemoizedFn(() => {
     Modal.confirm({
       title: "确认添加全部?",
@@ -188,6 +196,11 @@ const TabList = (props) => {
     if (cacheValid && state.tabListCache.windowId === id) {
       // 使用缓存数据
       setList(state.tabListCache.data);
+      link.getPendingLinks().then((links) => {
+        setPendingLinksCache(links);
+      }).catch((err) => {
+        console.error("Failed to refresh pending links from cache path:", err);
+      });
       setIsDataReady(true);
       return;
     }
@@ -200,11 +213,9 @@ const TabList = (props) => {
     ]).then(([tabListData, pendingData]) => {
       // 更新缓存
       state.tabListCache = { windowId: id, data: tabListData };
-      state.pendingLinksCache = pendingData;
-      state.cacheTime = now;
       
       setList(tabListData);
-      setPendingLinks(pendingData || []);
+      setPendingLinksCache(pendingData, now);
       setIsDataReady(true);
     }).catch((err) => {
       console.error("Failed to load tab list data:", err);
@@ -224,9 +235,7 @@ const TabList = (props) => {
     }
 
     link.getPendingLinks().then((links) => {
-      state.pendingLinksCache = links || [];
-      state.cacheTime = now;
-      setPendingLinks(state.pendingLinksCache);
+      setPendingLinksCache(links, now);
     }).catch((err) => {
       console.error("Failed to load pending links:", err);
       setPendingLinks([]);
@@ -252,11 +261,9 @@ const TabList = (props) => {
       const now = Date.now();
       // 更新缓存
       state.tabListCache = { windowId: id, data: tabListData };
-      state.pendingLinksCache = pendingData;
-      state.cacheTime = now;
       
       setList(tabListData);
-      setPendingLinks(pendingData || []);
+      setPendingLinksCache(pendingData, now);
       setIsDataReady(true);
     }).catch((err) => {
       console.error("Failed to refresh tab list data:", err);
