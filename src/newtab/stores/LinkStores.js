@@ -16,6 +16,11 @@ import {
 } from "~/utils";
 import { ensureFaviconForUrl } from "~/utils/favicon";
 import _ from "lodash";
+import {
+  PENDING_LINK_PARENT_ID,
+  dedupePendingLinks,
+  normalizePendingLinkUrl,
+} from "./pendingLinks.mjs";
 
 export default class LinkStore extends BaseStore {
   isInit = false;
@@ -49,19 +54,23 @@ export default class LinkStore extends BaseStore {
 
   updateNav() {
     return new Promise((resolve, reject) => {
-      this.rootStore.option.getHomeId().then((homeId) => {
-        this.getLinkByParentId([homeId], this.rootStore.option.showHide).then(
-          (res) => {
-            this.linkNav = res.sort((a, b) => {
-              return a.sort - b.sort;
-            });
-            resolve(this.linkNav);
-          }
-        );
-      });
-    }).catch((err) => {
-      reject(err);
-    })
+      this.rootStore.option.getHomeId()
+        .then((homeId) => {
+          this.getLinkByParentId([homeId], this.rootStore.option.showHide).then(
+            (res) => {
+              this.linkNav = res.sort((a, b) => {
+                return a.sort - b.sort;
+              });
+              resolve(this.linkNav);
+            }
+          ).catch((err) => {
+            reject(err);
+          });
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
   }
 
   async getNav(refresh = false) {
@@ -391,15 +400,16 @@ export default class LinkStore extends BaseStore {
     this.rootStore.option.init();
   }
 
-  // 获取待添加网址列表（parentId 为 "000000"）
+  // 获取待添加网址列表
   getPendingLinks() {
     return new Promise((resolve, reject) => {
       db.link
         .where("parentId")
-        .equals("000000")
+        .equals(PENDING_LINK_PARENT_ID)
         .toArray()
         .then((res) => {
-          resolve(res || []);
+          const { uniqueLinks } = dedupePendingLinks(res || []);
+          resolve(uniqueLinks);
         })
         .catch((err) => {
           handleError(err, "LinkStore.getPendingLinks");
@@ -411,42 +421,54 @@ export default class LinkStore extends BaseStore {
   // 添加待添加网址
   addPendingLink(url, title) {
     return new Promise((resolve, reject) => {
-      // 检查是否已存在相同的 URL
-      db.link
-        .where("parentId")
-        .equals("000000")
-        .and((link) => link.url === url)
-        .first()
-        .then((existing) => {
-          if (existing) {
-            // 如果已存在，直接返回
-            resolve(existing);
-            return;
+      const normalizedUrl = normalizePendingLinkUrl(url);
+
+      if (!normalizedUrl) {
+        resolve(null);
+        return;
+      }
+
+      db.transaction("rw", db.link, async () => {
+        const pendingLinks = await db.link
+          .where("parentId")
+          .equals(PENDING_LINK_PARENT_ID)
+          .toArray();
+        const sameUrlLinks = pendingLinks.filter((link) => {
+          return normalizePendingLinkUrl(link.url) === normalizedUrl;
+        });
+
+        if (sameUrlLinks.length > 0) {
+          const { uniqueLinks, duplicateLinks } = dedupePendingLinks(sameUrlLinks);
+          const duplicateLinkIds = duplicateLinks
+            .map((link) => link.linkId)
+            .filter((linkId) => Number.isFinite(linkId));
+
+          if (duplicateLinkIds.length > 0) {
+            await db.link.where("linkId").anyOf(duplicateLinkIds).delete();
           }
-          // 获取当前待添加网址的数量，用于设置 sort
-          this.getPendingLinks().then((pendingLinks) => {
-            const newLink = {
-              title: title || url,
-              url: url,
-              parentId: "000000",
-              sort: pendingLinks.length,
-              timeKey: getID(),
-              hide: false,
-            };
-            db.link
-              .put(newLink)
-              .then((res) => {
-                this.rootStore.data.update();
-                resolve(res);
-              })
-              .catch((err) => {
-                handleError(err, "LinkStore.addPendingLink.put");
-                reject(err);
-              });
-          });
+
+          return uniqueLinks[0];
+        }
+
+        const { uniqueLinks } = dedupePendingLinks(pendingLinks);
+        const newLink = {
+          title: title || normalizedUrl,
+          url: normalizedUrl,
+          parentId: PENDING_LINK_PARENT_ID,
+          sort: uniqueLinks.length,
+          timeKey: getID(),
+          hide: false,
+        };
+
+        await db.link.put(newLink);
+        return newLink;
+      })
+        .then((res) => {
+          this.rootStore.data.update();
+          resolve(res);
         })
         .catch((err) => {
-          handleError(err, "LinkStore.addPendingLink.check");
+          handleError(err, "LinkStore.addPendingLink");
           reject(err);
         });
     });
@@ -458,7 +480,7 @@ export default class LinkStore extends BaseStore {
       db.link
         .where("timeKey")
         .equals(timeKey)
-        .and((link) => link.parentId === "000000")
+        .and((link) => link.parentId === PENDING_LINK_PARENT_ID)
         .delete()
         .then((res) => {
           this.rootStore.data.update();
@@ -477,7 +499,7 @@ export default class LinkStore extends BaseStore {
       db.link
         .where("timeKey")
         .equals(timeKey)
-        .and((link) => link.parentId === "000000")
+        .and((link) => link.parentId === PENDING_LINK_PARENT_ID)
         .first()
         .then((link) => {
           if (!link) {

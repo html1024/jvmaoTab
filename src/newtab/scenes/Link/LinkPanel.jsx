@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import {
   useCreation,
@@ -17,6 +16,11 @@ import { ReactSortable } from "react-sortablejs";
 import LinkItem from "~/scenes/Link/LinkItem";
 import LinkTitle from "~/scenes/Link/LinkTitle";
 import { motion } from "framer-motion";
+import {
+  dedupeLinksByTimeKey,
+  hasMovedPendingLinks,
+  PENDING_LINK_PARENT_ID,
+} from "~/stores/pendingLinks.mjs";
 
 const { confirm } = Modal;
 
@@ -76,6 +80,12 @@ const LinkPanel = (props) => {
     updateList: [],
     isChange: false,
   }).current;
+
+  const refreshPendingListIfMoved = useMemoizedFn((links, parentId) => {
+    if (hasMovedPendingLinks(links, parentId)) {
+      tools.updateTimeKey();
+    }
+  });
 
 
   const addPanelToLinkItem$ = useEventEmitter();
@@ -167,8 +177,8 @@ const LinkPanel = (props) => {
           // 从数据库获取完整数据
           return link.getLinkByTimeKey(v.timeKey).then((linkData) => {
             if (linkData) {
-              // 如果是待添加网址（parentId === "000000"），直接更新数据库，不添加到列表
-              if (linkData.parentId === "000000") {
+              // 如果是待添加网址，直接更新数据库，不添加到列表
+              if (linkData.parentId === PENDING_LINK_PARENT_ID) {
                 return link.addPendingLinksToGroup(v.timeKey, key).then(() => {
                   // 更新成功，返回 null 表示不添加到列表（会通过刷新自动显示）
                   return null;
@@ -207,9 +217,6 @@ const LinkPanel = (props) => {
               pendingPromises.push(
                 link.getLinkByTimeKey(originalItem.timeKey).then((updatedLink) => {
                   if (updatedLink && updatedLink.parentId === key) {
-                    // 先添加到 link.list 和 cacheList，避免 diff 认为它是新项
-                    link.list.push(updatedLink);
-                    link.setCache();
                     return updatedLink;
                   }
                   return null;
@@ -224,17 +231,21 @@ const LinkPanel = (props) => {
         // 等待所有待添加网址更新完成
         Promise.all(pendingPromises).then((updatedPendingLinks) => {
           // 将更新后的待添加网址添加到 validItems
-          const allValidItems = [...validItems, ...updatedPendingLinks.filter(v => v !== null)];
+          const allValidItems = dedupeLinksByTimeKey([
+            ...validItems,
+            ...updatedPendingLinks.filter(v => v !== null),
+          ]);
           
           newPanel.push(...filterLinkList(allValidItems, key, false));
           link.list.push(...Array.from(newPanel));
 
           onChange(link.list);
+          refreshPendingListIfMoved(updatedPendingLinks, key);
           state.isChange = false;
         });
       });
     },
-    [link.getActiveID, link.titleLink.length, onChange, link]
+    [link.getActiveID, link.titleLink.length, onChange, link, refreshPendingListIfMoved]
   );
 
   // 复制全部网页
@@ -296,7 +307,7 @@ const LinkPanel = (props) => {
                 const updatePromises = newItems.map((newItem) => {
                   if (newItem.timeKey) {
                     return link.getLinkByTimeKey(newItem.timeKey).then((linkData) => {
-                      if (linkData && linkData.parentId === "000000") {
+                      if (linkData && linkData.parentId === PENDING_LINK_PARENT_ID) {
                         // 直接更新数据库
                         return link.addPendingLinksToGroup(newItem.timeKey, item.timeKey).then(() => {
                           // 更新成功后，从数据库中重新获取更新后的数据
@@ -323,6 +334,7 @@ const LinkPanel = (props) => {
                     link.list.push(...successfullyUpdated);
                     // 立即更新 cacheList，这样 updateData 的 diff 会认为它是更新而不是新增
                     link.setCache();
+                    refreshPendingListIfMoved(successfullyUpdated, item.timeKey);
                   }
                   
                   // 用更新后的数据替换 value 中的待添加网址
@@ -361,7 +373,7 @@ const LinkPanel = (props) => {
                   Promise.all(processedValue).then((resolvedValue) => {
                     setLinkItem(
                       item.timeKey,
-                      filterLinkList(resolvedValue, item.timeKey, false)
+                      filterLinkList(dedupeLinksByTimeKey(resolvedValue), item.timeKey, false)
                     );
                     state.updateList[item.timeKey] = false;
                   });
@@ -401,7 +413,6 @@ const LinkPanel = (props) => {
         </div>
       );
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [link.titleLink, link.linkForId, linkSpan, onUpdate, setLinkItem, onDelete, onDelPanel, onCopyAll]);
 
   const newPanelDom = useCreation(() => {
