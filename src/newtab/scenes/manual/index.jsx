@@ -120,7 +120,7 @@ function Manual(props) {
 
 
         list.push(['', (
-            <Cover onClick={() => next()} />
+            <Cover key="cover" onClick={() => next()} />
         )]);
 
         (data?.pages || []).map((v, k) => {
@@ -130,7 +130,7 @@ function Manual(props) {
             list.push([
                 '',
                 (
-                    <PageText dom={v.right} pageNum={`${k + 1} - ${data.pages.length}`} onClick={() => next()} />
+                    <PageText key={`right-${k}`} dom={v.right} pageNum={`${k + 1} - ${data.pages.length}`} onClick={() => next()} />
                 )]);
         })
 

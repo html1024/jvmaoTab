@@ -6,7 +6,7 @@ const App = () => {
         const messageListener = function (request, sender, sendResponse) {
             try {
                 switch (request.type) {
-                    case "onTextMenuCS":
+                    case "onTextMenuCS": {
                         const selection = window.getSelection();
                         if (selection && selection.rangeCount > 0) {
                             try {
@@ -22,6 +22,7 @@ const App = () => {
                             sendResponse({ html: "" });
                         }
                         break;
+                    }
                     default:
                         // 对于其他类型的消息，不返回 true，让系统知道这是同步响应
                         return false;

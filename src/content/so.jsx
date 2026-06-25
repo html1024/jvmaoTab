@@ -1,4 +1,3 @@
-/* global chrome, browser */
 import React from "react";
 import { SoIcon } from "../SearchIcon";
 import { Tooltip } from 'antd';

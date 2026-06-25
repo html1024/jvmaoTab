@@ -87,14 +87,6 @@ export default defineConfig({
         manifest: {
           ...baseManifest,
         },
-        additionalInputs: {
-          scripts: [
-            {
-              fileName: "src/content/index.html",
-              webAccessible: true,
-            },
-          ],
-        },
         useDynamicUrlWebAccessibleResources: false,
         // optimizeWebAccessibleResources: false,
         // devHtmlTransform: true,

@@ -15,7 +15,7 @@ const NOTE_WIDTH = 240;
 const NOTE_HEIGHT = 240;
 const POSITION_SAVE_DELAY = 200; // 位置保存延迟（毫秒）
 const SHOW_DELAY = 500; // 显示延迟（毫秒）
-const MAX_STICKY_NOTES = 5; // 最大便签数量
+const MAX_STICKY_NOTES = 10; // 最大便签数量
 
 const Wrap = styled.div`
     position: absolute;

@@ -135,7 +135,7 @@ const WebDAV = () => {
                         </Button>) : null}
                     </Space>
                     <Info>
-                        关于WebDAV的配置教程请<a href="https://n.mumingfang.com/archives/7576.html" target="_blank" >点击这里</a>
+                        关于WebDAV的配置教程请<a href="https://n.mumingfang.com/archives/7576.html" target="_blank" rel="noreferrer" >点击这里</a>
                     </Info>
                 </Form.Item>
                 <Divider />

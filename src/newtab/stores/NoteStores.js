@@ -23,7 +23,7 @@ import {
 import Storage from "~/utils/storage";
 
 const field = ["id", "content", "fromUrl", "sort", "state"];
-const MAX_STICKY_NOTES = 5; // 最大便签数量
+const MAX_STICKY_NOTES = 10; // 最大便签数量
 const DUSTBIN_CLEAR_DAYS = 30; // 垃圾桶清理天数
 const DUSTBIN_CHECK_INTERVAL_DAYS = 1; // 垃圾桶检查间隔（天）
 

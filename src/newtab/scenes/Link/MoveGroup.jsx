@@ -134,9 +134,7 @@ const WrapBtn = styled.div`
     align-items: center;
 `;
 
-const MoveGroup = (props) => {
-    const {
-    } = props;
+const MoveGroup = () => {
     const { option, tools, link } = useStores();
     const [treeData, setTreeData] = React.useState([]);
 

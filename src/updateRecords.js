@@ -1,5 +1,13 @@
 const updateRecords = [
     {
+        version: "1.4.2",
+        items: [
+            "修复: 搜索结果页快捷导航显示开关不生效问题",
+            "修复: content script 重复注册导致构建产物覆盖警告问题",
+            "优化: 修复若干代码规范问题，提高构建稳定性",
+        ]
+    },
+    {
         version: "1.4.0",
         items: [
             "优化: 配置webdav之后兜底数据同步逻辑",
@@ -336,4 +344,3 @@ const updateRecords = [
 ];
 
 export default updateRecords;
-

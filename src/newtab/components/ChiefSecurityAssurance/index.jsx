@@ -49,13 +49,14 @@ const ChiefSecurityAssurance = ({ children }) => {
             subTitle="发生这样的事情通常都是因为不可抗拒的因素导致的, 请尝试刷新页面。或者你也可以点击错误信息然后把它截图发给我们"
             icon={<img style={{ height: "100px", width: "100px" }} src={logoPng} alt="橘猫起始页" />}
             extra={[
-              <Button type="primary" onClick={() => window.location.reload()}>
+              <Button key="reload" type="primary" onClick={() => window.location.reload()}>
                 刷新页面
               </Button>,
               <Button key="buy" onClick={() => setShowErr(true)}>
                 错误信息
               </Button>,
               <Popconfirm
+                key="reset"
                 title="即将重置选项"
                 description="即将重置选项，上传的自定义壁纸会被清空。(仅设置项会被重置，其他数据会被保留)"
                 onConfirm={confirm}

@@ -16,10 +16,6 @@ import styled from "styled-components";
 function MenuBar(props) {
   const { editor } = props;
 
-  if (!editor) {
-    return null;
-  }
-
   const menuItem = useMemoizedFn((item) => {
     const { onClick, disabled, active, title, Icon } = item;
     return (
@@ -34,6 +30,10 @@ function MenuBar(props) {
       </Tooltip>
     );
   }, []);
+
+  if (!editor) {
+    return null;
+  }
 
   return (
     <div className="sn-editor-menuBar">

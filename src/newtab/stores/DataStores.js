@@ -547,7 +547,7 @@ export default class DataStores {
             if (table === 'option') {
               switch (value.key) {
                 case 'bgType':
-                case 'bg2Type':
+                case 'bg2Type': {
                   let type_value = _.cloneDeep(value);
                   if (type_value.value === 'file') {
                     type_value.value = value.key == 'bgType' ? 'bing' : '';
@@ -556,17 +556,17 @@ export default class DataStores {
                     value: type_value,
                       key,
                   }
-                  break;
+                }
 
                 case 'bgBase64':
-                case 'bg2Base64':
+                case 'bg2Base64': {
                   let _value = _.cloneDeep(value);
                   _value.value = '';
                   return {
                     value: _value,
                       key,
                   }
-                  break;
+                }
               }
             }
             return {
@@ -586,7 +586,7 @@ export default class DataStores {
   }
 
   readFile = (filePath) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         this.client.getFileContents(filePath, {
           format: "text"
@@ -604,7 +604,7 @@ export default class DataStores {
 
   // 写入文件内容
   writeFile = (filePath, blob) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         this.toArrayBuffer(blob).then((blob) => {
           this.client.putFileContents(filePath, blob, {

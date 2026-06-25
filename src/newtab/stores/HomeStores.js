@@ -339,9 +339,7 @@ export default class HomeStores {
    * 获取 Bing 壁纸
    * 渐进式加载：优先使用本地缓存，先显示缩略图，再显示大图
    */
-  getBingBg() {
-    return new Promise(async (resolve, reject) => {
-      try {
+  async getBingBg() {
         // 1. 先尝试读取本地 Blob 缓存
         const [srcBlob, thumbBlob] = await Promise.all([
           Storage.getBlob('bingWallpaper').catch(() => null),
@@ -370,9 +368,8 @@ export default class HomeStores {
             });
           }
           
-          resolve({ srcUrl, thumbnailUrl: thumbnailUrl || srcUrl });
-              return;
-            }
+          return { srcUrl, thumbnailUrl: thumbnailUrl || srcUrl };
+        }
             
         // 2. 没有本地 Blob，检查是否有元数据（使用远程 URL）
         const metadata = await Storage.get('bingImg').catch(() => null);
@@ -384,14 +381,12 @@ export default class HomeStores {
             // 先返回远程缩略图 URL（更快加载）
             this.isLoadingWallpaper = true;
             // 注意：先用缩略图显示，大图由 downloadAndStoreBingBlob 加载后自动替换
-            resolve({ srcUrl: urls.thumbnailUrl, thumbnailUrl: urls.thumbnailUrl });
-            
             // 后台渐进式下载（先缩略图后大图）
             this.downloadAndStoreBingBlob(cache.urlbase).catch(err => {
               console.error('后台下载 Bing 壁纸失败：', err);
               this.isLoadingWallpaper = false;
             });
-            return;
+            return { srcUrl: urls.thumbnailUrl, thumbnailUrl: urls.thumbnailUrl };
           }
         }
         
@@ -405,11 +400,7 @@ export default class HomeStores {
         }
         
         const result = await this.loadNewBingWallpaper(hideLoading);
-        resolve(result);
-      } catch (err) {
-        reject(err);
-      }
-    });
+        return result;
   }
 
   /**

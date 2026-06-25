@@ -92,7 +92,7 @@ const LinkItemSmallComponent = (props) => {
                         href={props.url}
                         target={linkOpenSelf ? '_blank' : '_self'}
                         onClick={handleLinkClick}
-                        onAuxClick={handleLinkClick}
+                        onAuxClick={handleLinkClick} rel="noreferrer"
                     ></a>
                 </Wrap>
             </Tooltip>
