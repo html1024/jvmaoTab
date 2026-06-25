@@ -54,7 +54,8 @@ const SearchLinkItem = styled.div`
 
 const HomeSearch = (props) => {
   const { option, home, link } = useStores();
-  const { isSoBarDown, linkOpenSelf, customkey } = option.item
+  const { isSoBarDown, linkOpenSelf, customkey = [] } = option.item
+  const customSoList = Array.isArray(customkey) ? customkey : [];
   const { stickled, className } = props;
   const inputRef = React.useRef(null);
   const [inputFocus, setInputFocus] = React.useState(false);
@@ -85,8 +86,8 @@ const HomeSearch = (props) => {
 
   // 缓存 soList，避免每次重新创建
   const soList = useCreation(() => {
-    return [...customkey, ...SoIcon];
-  }, [customkey]);
+    return [...customSoList, ...SoIcon];
+  }, [customSoList]);
 
   const onDropDownClick = useMemoizedFn((open) => {
     if (open) {

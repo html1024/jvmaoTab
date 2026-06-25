@@ -28,13 +28,15 @@ const MenuItemWrap = styled.div`
 const SearchMenu = (props) => {
   const { option } = useStores();
   const { customkey = [] } = option.item;
+  const customSoList = Array.isArray(customkey) ? customkey : [];
   const [state, setState] = useControllableValue(props);
   const { isFocus } = props;
 
   const List = useCreation(() => {
-    const soList = [...customkey, ...SoIcon];
-    return (option.item.soList || []).map(k => soList.find(v => v?.key && v.key === k)).filter(Boolean);
-  }, [option.item.soList, SoIcon, customkey]);
+    const soList = [...customSoList, ...SoIcon];
+    const enabledSoList = Array.isArray(option.item.soList) ? option.item.soList : [];
+    return enabledSoList.map(k => soList.find(v => v?.key && v.key === k)).filter(Boolean);
+  }, [option.item.soList, SoIcon, customSoList]);
 
   const key = useCreation(() => {
     return List.map((item, index) => {

@@ -95,6 +95,26 @@ const updateOptions = {
   }
 }
 
+const arrayOptionFallbacks = {
+  soList: updateOptions[2].soList,
+  translateList: updateOptions[2].translateList,
+  pwKey: updateOptions[2].pwKey,
+  homeNoteData: updateOptions[5].homeNoteData,
+  customkey: updateOptions[8].customkey,
+  noteTab: updateOptions[13].noteTab,
+};
+
+const normalizeOptionValue = (key, value) => {
+  if (Object.prototype.hasOwnProperty.call(arrayOptionFallbacks, key) && !Array.isArray(value)) {
+    return _.cloneDeep(arrayOptionFallbacks[key]);
+  }
+  return value;
+};
+
+const isInvalidOptionValue = (key, value) => {
+  return Object.prototype.hasOwnProperty.call(arrayOptionFallbacks, key) && !Array.isArray(value);
+};
+
 
 export default class OptionStores {
   isInit = false;
@@ -204,7 +224,11 @@ export default class OptionStores {
 
 
           res.forEach((item) => {
-            this.item[item.key] = item.value;
+            const value = normalizeOptionValue(item.key, item.value);
+            this.item[item.key] = value;
+            if (value !== item.value) {
+              this.setOption(item.key, value);
+            }
           });
 
 
@@ -214,23 +238,24 @@ export default class OptionStores {
             type: "getOption",
           }, (response) => {
             for (const key in response) {
-              const v = response[key];
+              const rawValue = response[key];
+              const value = normalizeOptionValue(key, rawValue);
               if (typeof this.item[key] !== 'undefined') {
                 let equation = true;
                 switch (true) {
-                  case _.isArray(v):
-                    equation = _.isEqual(this.item[key], v);
+                  case _.isArray(value):
+                    equation = _.isEqual(this.item[key], value);
                     break;
-                  case _.isObject(v):
-                    equation = _.isEqual(this.item[key], v);
+                  case _.isObject(value):
+                    equation = _.isEqual(this.item[key], value);
                     break;
                   default:
-                    equation = this.item[key] === v;
+                    equation = this.item[key] === value;
                     break;
                 }
 
                 if (!equation) {
-                  this.setItem(key, v, false);
+                  this.setItem(key, value, isInvalidOptionValue(key, rawValue));
                 }
               }
             }
@@ -280,7 +305,7 @@ export default class OptionStores {
       }, (response) => {
 
         for (const key in response) {
-          const v = response[key];
+          const v = normalizeOptionValue(key, response[key]);
           if (typeof defaultOption[key] !== 'undefined') {
             defaultOption[key] = v
           }
@@ -294,7 +319,7 @@ export default class OptionStores {
 
         Object.keys(defaultOption).forEach((key) => {
 
-          if (typeof this.item[key] === "undefined" || home_id && key === 'homeId') {
+          if (typeof this.item[key] === "undefined" || isInvalidOptionValue(key, this.item[key]) || home_id && key === 'homeId') {
             this.setItem(key, defaultOption[key]);
           }
         });
@@ -352,8 +377,9 @@ export default class OptionStores {
             return;
           }
           res.forEach((item) => {
-            this.item[item.key] = item.value;
-            data[item.key] = item.value;
+            const value = normalizeOptionValue(item.key, item.value);
+            this.item[item.key] = value;
+            data[item.key] = value;
 
           });
           console.log('%c [ data ]-248', 'font-size:13px; background:pink; color:#bf2c9f;', data)
@@ -373,14 +399,15 @@ export default class OptionStores {
   }
 
   setItem(key, value, save = true) {
-    console.log('%c [ value ]-225', 'font-size:13px; background:pink; color:#bf2c9f;', key, value)
-    this.item[key] = value;
-    return this.setOption(key, value).then(() => {
+    const normalizedValue = normalizeOptionValue(key, value);
+    console.log('%c [ value ]-225', 'font-size:13px; background:pink; color:#bf2c9f;', key, normalizedValue)
+    this.item[key] = normalizedValue;
+    return this.setOption(key, normalizedValue).then(() => {
       if (save) {
         chrome.runtime.sendMessage({
           type: "setOptions",
           data: {
-            [key]: value
+            [key]: normalizedValue
           }
         }, function (response) {
 

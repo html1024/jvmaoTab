@@ -131,6 +131,7 @@ const NavLi = styled.li`
 const Nav = (props) => {
   const { link, tools, option, note } = useStores();
   const { showLinkNav, linkOpenSelf, noteTab = [], hasNoteTrash } = option.item;
+  const safeNoteTab = Array.isArray(noteTab) ? noteTab : [];
   const { token } = useToken();
   const navigate = useNavigate();
   const location = useLocation();
@@ -174,7 +175,7 @@ const Nav = (props) => {
       });
     });
 
-    const notes = noteTab.map((item, index) => {
+    const notes = safeNoteTab.map((item, index) => {
       return getItem({
         label: item.title,
         key: item.key,
@@ -209,7 +210,7 @@ const Nav = (props) => {
     }));
 
     return n;
-  }, [link.linkNav, showLinkNav, noteTab, hasNoteTrash]);
+  }, [link.linkNav, showLinkNav, safeNoteTab, hasNoteTrash]);
 
   const isActive = useMemoizedFn((key, type) => {
     if (type == "link" && location.pathname == '/') {
