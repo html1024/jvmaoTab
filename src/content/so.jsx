@@ -1,3 +1,4 @@
+/* global chrome, browser */
 import React from "react";
 import { SoIcon } from "../SearchIcon";
 import { Tooltip } from 'antd';
@@ -19,6 +20,13 @@ const getDefaultFaviconSrc = () => {
         // ignore
     }
     return "/default-favicon.svg";
+};
+
+const buildSearchUrl = (url, text) => {
+    if (String(url).includes('%s')) {
+        return String(url).replaceAll('%s', text);
+    }
+    return `${url}${text}`;
 };
 
 function changeArray(arr, index) {
@@ -234,6 +242,11 @@ const So = () => {
                     return;
                 }
 
+                if (res?.showSearchResultNav === false) {
+                    setLoading(false);
+                    return;
+                }
+
                 if (res && typeof res['soList'] !== 'undefined' && res['soList'].length > 0) {
                     const _n = [];
                     const hosts = [];
@@ -327,7 +340,7 @@ const So = () => {
                             onClick={() => {
                                 try {
                                     const text = get_text();
-                                    const targetUrl = item.url + text;
+                                    const targetUrl = buildSearchUrl(item.url, text);
                                     window.open(targetUrl, isOpen ? "_blank" : "_self");
                                 } catch (error) {
                                     console.error("Error opening URL:", error);

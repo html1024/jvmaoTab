@@ -1,3 +1,4 @@
+/* global chrome */
 import React from "react";
 import { observer } from "mobx-react";
 import useStores from "~/hooks/useStores";
@@ -51,6 +52,14 @@ const SearchLinkItem = styled.div`
   padding: 0 8px;
   gap: 8px;
 `;
+
+const buildSearchUrl = (url, search) => {
+  const encodedSearch = encodeURIComponent(search);
+  if (String(url).includes('%s')) {
+    return String(url).replaceAll('%s', encodedSearch);
+  }
+  return `${url}${encodedSearch}`;
+};
 
 const HomeSearch = (props) => {
   const { option, home, link } = useStores();
@@ -159,8 +168,7 @@ const HomeSearch = (props) => {
           // 直接使用 baseUrl，不需要 URL 参数
           searchUrl = activeSoItem.baseUrl;
         } else {
-          // 传统类型：保持原有逻辑
-          searchUrl = `${activeSoItem.url}${encodeURIComponent(search)}`;
+          searchUrl = buildSearchUrl(activeSoItem.url, search);
         }
         if (linkOpenSelf) {
           window.location.href = searchUrl;

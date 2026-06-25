@@ -14,17 +14,40 @@ import { getID } from "~/utils";
 import { ensureFaviconForUrl, detectFaviconFromUrl } from "~/utils/favicon";
 import { getFavicon } from "~/db";
 
-function checkUrlHasSpecificQueryAndEndsWithEqual(url, queryKey) {
-    // 解析URL中的查询字符串
-    const queryString = url.split('?')[1];
-    if (!queryString) {
-        return false; // 没有查询字符串
+const SEARCH_PLACEHOLDER = '%s';
+
+function getValidatableUrl(url) {
+    return String(url || '').replaceAll(SEARCH_PLACEHOLDER, 'keyword');
+}
+
+function isValidUrlTemplate(url) {
+    try {
+        new URL(getValidatableUrl(url));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function checkSearchUrlTemplate(url, queryKey) {
+    if (!isValidUrlTemplate(url)) {
+        return false;
     }
 
-    // 将查询字符串分解为键值对
-    const params = new URLSearchParams(queryString);
+    if (String(url).includes(SEARCH_PLACEHOLDER)) {
+        return true;
+    }
 
-    // 检查是否存在特定的查询参数并且查询字符串以等号结尾
+    if (!queryKey) {
+        return false;
+    }
+
+    const queryString = String(url).split('?')[1];
+    if (!queryString) {
+        return false;
+    }
+
+    const params = new URLSearchParams(queryString);
     return params.has(queryKey) && queryString.endsWith('=');
 }
 
@@ -117,6 +140,7 @@ const Info = styled.div`
 const SoSelect = (props) => {
     const { tools, option } = useStores();
     const { customkey } = option.item;
+    const [form] = Form.useForm();
     const [value, setValue] = useControllableValue(props);
     const [list, setList] = React.useState([]);
     const [open, setOpen] = React.useState(false);
@@ -179,11 +203,11 @@ const SoSelect = (props) => {
 
     const onFinish = React.useCallback(async (values) => {
         console.log('Success:', values);
-        if (!checkUrlHasSpecificQueryAndEndsWithEqual(values['url'], values['searchParams'])) {
+        if (!checkSearchUrlTemplate(values['url'], values['searchParams'])) {
             tools.error('网址填写不正确，请检查后重新填写');
             return;
         }
-        api.get(values['url']);
+        api.get(getValidatableUrl(values['url']));
         
         // 获取域名用于后续 favicon 获取
         let origin;
@@ -316,7 +340,7 @@ const SoSelect = (props) => {
                         return (
                             <Item key={v.key}>
                                 <i>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-grip-vertical"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M9 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M9 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M9 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M15 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M15 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M15 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-grip-vertical"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M9 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M9 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M9 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M15 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M15 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M15 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
                                 </i>
                                 {v.icon ? v.icon : <FavIconIcon size={20} url={v.url} onlyDomain />}
                                 <span>{v.name}</span>
@@ -340,6 +364,7 @@ const SoSelect = (props) => {
             >
                 <Form
                     name="basic"
+                    form={form}
                     layout="vertical"
                     initialValues={{
 
@@ -348,10 +373,11 @@ const SoSelect = (props) => {
                 >
                     <Info>
                         <h4>使用说明</h4>
-                        <p>网址必须包含Query查询参数并以等于号结尾，需要将参数名填写到 "关键字字段名称" 中</p>
+                        <p>网址支持两种格式：使用 %s 作为关键词占位符，或包含 Query 查询参数并以等于号结尾</p>
                         <p>示例：谷歌，网址填写 “https://www.google.com/search?q=” , 关键字字段名称填写 “q”</p>
+                        <p>示例：抖音，网址填写 “https://www.douyin.com/search/%s?type=general”</p>
                         <p>添加后如果图标没有显示出来，您可以手动访问添加的页面，比如以上这个只要访问 https://www.google.com/ 即可</p>
-                        <p><strong>搜索框选择器（可选）</strong>：用于实时获取搜索框中的关键词。如果用户在搜索框中修改了关键词，切换搜索引擎时会使用最新的关键词。支持 CSS 选择器，如 "input[name='q']" 或 "#search-input"。如果不填写，将使用 URL 参数中的关键词。</p>
+                        <p><strong>搜索框选择器（可选）</strong>：用于实时获取搜索框中的关键词。如果用户在搜索框中修改了关键词，切换搜索引擎时会使用最新的关键词。支持 CSS 选择器，如 <code>{'input[name="q"]'}</code> 或 <code>#search-input</code>。如果不填写，将使用 URL 参数中的关键词。</p>
                     </Info>
                     <Form.Item
                         label="网站名称"
@@ -375,25 +401,34 @@ const SoSelect = (props) => {
                                 message: '请输入网址',
                             },
                             {
-                                type: 'url',
-                                message: '请输入正确的网址',
+                                validator(_, value) {
+                                    if (!value || isValidUrlTemplate(value)) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(new Error('请输入正确的网址'));
+                                },
                             }
                         ]}
                     >
-                        <Input />
+                        <Input placeholder="例如：https://www.douyin.com/search/%s?type=general" />
                     </Form.Item>
 
                     <Form.Item
                         label="关键字字段名称"
                         name="searchParams"
                         rules={[
-                            {
-                                required: true,
-                                message: '请输入关键字字段名称',
-                            }
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    const url = getFieldValue('url') || '';
+                                    if (String(url).includes(SEARCH_PLACEHOLDER) || value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(new Error('请输入关键字字段名称'));
+                                },
+                            })
                         ]}
                     >
-                        <Input placeholder="例如：q, wd, query" />
+                        <Input placeholder="使用 %s 占位符时可不填；例如：q, wd, query" />
                     </Form.Item>
 
                     <Form.Item
@@ -417,4 +452,3 @@ const SoSelect = (props) => {
     );
 };
 export default observer(SoSelect);
-

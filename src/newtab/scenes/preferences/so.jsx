@@ -9,7 +9,7 @@ import _ from "lodash";
 const PreferencesSo = () => {
     const { option } = useStores();
     const _option = _.cloneDeep(option.item);
-    const { soStyleIsRound, soList, soAOpen, activeSo, isSoBarDown, soHdCenter } = _option;
+    const { soStyleIsRound, soList, soAOpen, activeSo, isSoBarDown, soHdCenter, showSearchResultNav } = _option;
 
     const handleChange = (value) => {
         if (!value || typeof value !== 'object') {
@@ -34,6 +34,7 @@ const PreferencesSo = () => {
                 soAOpen,
                 isSoBarDown,
                 soHdCenter,
+                showSearchResultNav,
             }}
             onValuesChange={handleChange}
         >
@@ -43,6 +44,9 @@ const PreferencesSo = () => {
             <Divider />
             <Form.Item name='soAOpen' valuePropName="checked" style={{ marginBottom: 5 }}>
                 <Checkbox>搜索结果页导航点击后在新页面打开</Checkbox>
+            </Form.Item>
+            <Form.Item name='showSearchResultNav' valuePropName="checked" style={{ marginBottom: 5 }}>
+                <Checkbox>在搜索结果页显示搜索引擎快捷导航</Checkbox>
             </Form.Item>
             <Form.Item name='soStyleIsRound' valuePropName="checked" style={{ marginBottom: 5 }}>
                 <Checkbox>启用圆角搜索框</Checkbox>

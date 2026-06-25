@@ -1,3 +1,4 @@
+/* global chrome */
 import {
   observable,
   action,
@@ -15,7 +16,7 @@ import {
 
 const localStorageKeys = ['bgType', 'bg2Type', 'bgBase64', 'bg2Base64', 'webdavVersion'];
 
-const v = 15;
+const v = 16;
 const updateOptions = {
   1: {
     errData: '9527'
@@ -92,6 +93,9 @@ const updateOptions = {
   },
   15: {
     homeGlassEffect: false,
+  },
+  16: {
+    showSearchResultNav: true,
   }
 }
 
