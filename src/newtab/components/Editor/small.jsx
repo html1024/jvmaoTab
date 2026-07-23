@@ -100,14 +100,25 @@ export default (props) => {
 
     React.useEffect(() => {
 
+        let timer = null;
+
         if (editor && editor.isEmpty) {
-            setTimeout(() => {
-                editor.commands.focus('end');
+            timer = setTimeout(() => {
+                if (editor.isDestroyed) {
+                    return;
+                }
+                // scrollIntoView 必须关掉：便签是绝对定位的，位置越界时
+                // ProseMirror 会把外层 overflow:hidden 的首屏容器整个滚走，
+                // 而且没有滚动条可以滚回来，导致布局永久错位
+                editor.commands.focus('end', { scrollIntoView: false });
             }, 300);
         }
 
 
         return () => {
+            if (timer) {
+                clearTimeout(timer);
+            }
             if (editor) {
                 editor.destroy()
             }

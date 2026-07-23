@@ -10,6 +10,7 @@ import {
   useKeyPress,
 } from "ahooks";
 import useDebounce from "~/hooks/useDebounce";
+import useResetScroll from "~/hooks/useResetScroll";
 import DelayedMount from "~/components/DelayedMount";
 import PageLoading from "~/components/PageLoading";
 import styled from "styled-components";
@@ -73,6 +74,7 @@ const Home = (props) => {
 
   // const ref = useRef(null);
   const ref = React.useRef(null);
+  const wrapRef = React.useRef(null);
   const s = useScroll(ref);
   const isHovering = useHover(ref);
   const location = useLocation();
@@ -92,6 +94,10 @@ const Home = (props) => {
   const state = React.useRef({
     pwKeyNum: 0,
   }).current;
+
+  // 兜底：Main 用 translateY(100vh) 藏在屏幕下方，会撑出可滚动区域，
+  // 编辑器聚焦时可能把这个 overflow:hidden 的外壳滚走，导致首屏整体错位
+  useResetScroll(wrapRef);
 
   const handleUnlock = useMemoizedFn(() => {
     if (v.unlock) {
@@ -217,7 +223,7 @@ const Home = (props) => {
   }, [onwheel]);
 
   return (
-    <Wrap className={`main-wrap sn-bg-wrap ${homeGlassEffect ? 'glass-home' : ''}`}>
+    <Wrap ref={wrapRef} className={`main-wrap sn-bg-wrap ${homeGlassEffect ? 'glass-home' : ''}`}>
       <FirstScreen
         navWidth={navWidth}
         headerHeight={headerHeight}

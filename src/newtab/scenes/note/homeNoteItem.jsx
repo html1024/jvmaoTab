@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { observer } from "mobx-react";
 import useStores from "~/hooks/useStores";
 import { useDraggable } from "@dnd-kit/core";
-import { useDebounceFn, useEventEmitter, useUpdateEffect } from "ahooks";
+import { useDebounceFn, useEventEmitter, useUpdateEffect, useMemoizedFn } from "ahooks";
 import { Button, Tooltip } from "antd";
 import { IconDots, IconX, IconCapsuleHorizontal } from "@tabler/icons-react";
 import Editor from "~/components/Editor/small";
@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 import dayjs from 'dayjs'
 
 const _height = 22;
+// 便签的默认尺寸，测不到真实尺寸时用它兜底
+const DEFAULT_NOTE_SIZE = 240;
 
 const Wrap = styled.div`
     position: absolute;
@@ -150,8 +152,31 @@ const HomeNoteItem = (props) => {
         id,
     }).current;
 
+    const wrapRef = React.useRef(null);
+    const positionRef = React.useRef(position);
+
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: "draggable_" + kId,
+    });
+
+    // dnd-kit 的 ref 和自己测尺寸用的 ref 都要指向同一个节点
+    const setRefs = useMemoizedFn((node) => {
+        wrapRef.current = node;
+        setNodeRef(node);
+    });
+
+    // 把坐标限制在当前视口内。位置是创建时算好后长期存盘的，
+    // 换分辨率 / 缩放 / 改窗口大小之后就会越界，必须重新收敛，
+    // 否则编辑器聚焦时会把外层容器滚走，整个首屏错位
+    const clampPosition = useMemoizedFn((x, y) => {
+        const width = wrapRef.current?.offsetWidth || DEFAULT_NOTE_SIZE;
+        const height = wrapRef.current?.offsetHeight || DEFAULT_NOTE_SIZE;
+        const maxLeft = Math.max(0, window.innerWidth - width);
+        const maxTop = Math.max(0, window.innerHeight - height);
+        return {
+            x: Math.min(Math.max(0, x), maxLeft),
+            y: Math.min(Math.max(0, y), maxTop),
+        };
     });
 
     const editorEvent$ = useEventEmitter();
@@ -184,14 +209,24 @@ const HomeNoteItem = (props) => {
     });
 
     const { run: debouncedRun } = useDebounceFn((x, y) => {
-        setPosition((prev) => {
-            const newX = x + prev.x;
-            const newY = y + prev.y;
-            saveNotePosition(kId, newX, newY);
-            return { x: newX, y: newY };
-        });
+        const next = clampPosition(x + positionRef.current.x, y + positionRef.current.y);
+        positionRef.current = next;
+        setPosition(next);
+        saveNotePosition(kId, next.x, next.y);
         setTransformPosition({ x: 0, y: 0 });
     }, { wait: 100 });
+
+    // 挂载时和视口变化时把越界的便签拉回可视区域
+    const resetToViewport = useMemoizedFn(() => {
+        const prev = positionRef.current;
+        const next = clampPosition(prev.x, prev.y);
+        if (next.x === prev.x && next.y === prev.y) {
+            return;
+        }
+        positionRef.current = next;
+        setPosition(next);
+        saveNotePosition(kId, next.x, next.y);
+    });
 
     const onContextMenu = React.useCallback((e) => {
         e.stopPropagation();
@@ -254,6 +289,20 @@ const HomeNoteItem = (props) => {
         }
     }, [type, time]);
 
+    React.useEffect(() => {
+        positionRef.current = position;
+    }, [position]);
+
+    React.useEffect(() => {
+        // 延迟一点等内容加载完、高度定下来再收敛
+        const timer = setTimeout(resetToViewport, 300);
+        window.addEventListener("resize", resetToViewport);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener("resize", resetToViewport);
+        };
+    }, [resetToViewport]);
+
     if (type === 'capsule' && !showCapsule) {
         return null;
     }
@@ -261,7 +310,7 @@ const HomeNoteItem = (props) => {
     return (
         <Wrap
             className={loading ? "loading" : ""}
-            ref={setNodeRef}
+            ref={setRefs}
             {...attributes}
             onClick={onClick}
             style={{

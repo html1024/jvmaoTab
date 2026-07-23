@@ -1,6 +1,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 import useStores from "~/hooks/useStores";
+import useResetScroll from "~/hooks/useResetScroll";
 import styled from "styled-components";
 import { DndContext } from "@dnd-kit/core";
 import { restrictToParentElement } from "@dnd-kit/modifiers";
@@ -49,6 +50,9 @@ const HomeNoteComponent = (props) => {
     const v = React.useRef({
         canSaveNotePosition: false,
     }).current;
+
+    // 兜底：便签内的编辑器聚焦时可能把这个 overflow:hidden 容器滚走
+    useResetScroll(parentRef);
 
     const onDoubleClick = useMemoizedFn((e) => {
         if (!e.target.classList.contains("sn-bg-wrap")) {
